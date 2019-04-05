@@ -69,5 +69,24 @@ namespace Hit.GutService.Controllers
 
             return response;
         }
+
+        [HttpGet]
+        [Route("api/dispose/")]
+        public HttpResponseMessage DisposeAll()
+        {
+            HttpResponseMessage response;
+
+            try
+            {
+                Service.Dispose();
+                response = Request.CreateResponse(HttpStatusCode.OK);
+            }
+            catch (ApplicationException ex)
+            {
+                response = Request.CreateResponse(HttpStatusCode.InternalServerError, ex);
+            }
+
+            return response;
+        }
     }
 }

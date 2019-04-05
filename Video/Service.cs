@@ -14,10 +14,10 @@ namespace Hit.GutService.Video
 {
     public static class Service
     {
-        private static GngServer m_GngServer;
         private static OffscreenViewer v = new OffscreenViewer();
         private static Thread sendingFrames;
         private static bool play;
+        private const long MediaChID = 1; //camera ID
 
         private static void SendingFrames()
         {
@@ -56,19 +56,9 @@ namespace Hit.GutService.Video
         }
 
         public static void Play()
-        { 
+        {
 
-            m_GngServer = Server.Connect();
-
-            // initialize the viewer parameters
-            GngViewerConnectData connectData = new GngViewerConnectData
-            {
-                GngServer = m_GngServer,
-                MediaChID = 1 //katero kamero gledamo kamera 
-            };
-
-            v.StartPlay(connectData);
-
+            v.Viewer(GngViewerPlayMode.pmPlayForward, MediaChID);
             play = true;
 
             //wait until we have images in queue
@@ -83,9 +73,46 @@ namespace Hit.GutService.Video
             try
             {
                 play = false;
+                v.Viewer(GngViewerPlayMode.pmPlayStop, MediaChID);
                 sendingFrames.Abort();
 
-            }catch (Exception)
+            }
+            catch (Exception)
+            {
+                //todo
+            }
+            finally
+            {
+                //v.Dispose();
+                //Server.Disconnect();
+                //GC.SuppressFinalize(v);
+            }
+        }
+
+        public static void Picture()
+        {
+            //Send first frame
+
+            VideoHub videoHub = new VideoHub();
+
+            v.Viewer(GngViewerPlayMode.pmPlayForward, MediaChID);
+
+            //wait until we have images in queue
+            while (v.images.Count < 1) ;
+
+            videoHub.Send(v.GetFrame());
+
+            v.Dispose();
+        }
+
+        public static void Dispose()
+        {
+            try
+            {
+                play = false;
+                sendingFrames.Abort();
+            }
+            catch (Exception)
             {
                 //todo
             }
@@ -97,39 +124,15 @@ namespace Hit.GutService.Video
             }
         }
 
-        public static void Picture()
-        {
-            //Send first frame
-
-            VideoHub videoHub = new VideoHub();
-
-            m_GngServer = Server.Connect();
-            // initialize the viewer parameters
-            GngViewerConnectData connectData = new GngViewerConnectData
-            {
-                GngServer = m_GngServer,
-                MediaChID = 1 //katero kamero gledamo kamera 
-            };
-
-            v.StartPlay(connectData);
-
-            //wait until we have images in queue
-            while (v.images.Count < 1) ;
-
-            videoHub.Send(v.GetFrame());
-
-            v.Dispose();
-        }
-
         //TODO
         public static void Gplc()
         {
             GngMediaChannelID gngMediaChannelID = new GngMediaChannelID(1);
 
-            GCore_Action_ViewerSetPlayMode gCore_Action_ViewerSetPlayMode 
+            GCore_Action_ViewerSetPlayMode gCore_Action_ViewerSetPlayMode
                                          = new GCore_Action_ViewerSetPlayMode(gngMediaChannelID, GngPlcViewerPlayMode.vpmPlayForward, 1);
 
-            
+
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿#region using
+using GEUTEBRUECK.Gng.Wrapper.DBI;
 using GEUTEBRUECK.Gng.Wrapper.MediaPlayer;
 using Hit.LoggerLibrary;
 using System;
@@ -10,10 +11,11 @@ using System.Threading;
 
 namespace Hit.GutService.Video
 {
-    public class OffscreenViewer:IDisposable
+    public class OffscreenViewer : IDisposable
     {
 
         #region  declarations
+        private GngServer m_GngServer;
         private GngOffscreenViewer m_GngOffscreenViewer;
         private GngDecompBuffer m_GngDecompBuffer1;   // handles to two decompression buffer objects
         private GngDecompBuffer m_GngDecompBuffer2;   // during the image in one decompression buffer is rendered or processed,
@@ -23,16 +25,30 @@ namespace Hit.GutService.Video
         private object m_CSBuffer1 = new Object();    // make the first decompression buffer thread-safe
         private object m_CSBuffer2 = new Object();    // make the second decompression buffer thread-safe
         public CircularBuffer<byte[]> images = new CircularBuffer<byte[]>(10000000); //Buffer qeueu for smooth playing
-        private const int width  = 768;
+        private const int width = 768;
         private const int heigth = 576;
         #endregion
 
-        public void StartPlay(GngViewerConnectData connectData)
+        public void Viewer(GngViewerPlayMode gngViewerPlayMode, long MediaChID)
         {
-            if (m_GngOffscreenViewer == null)
-                CreateOffscreenViewer();
 
-            m_GngOffscreenViewer.ConnectDB(connectData, GngViewerPlayMode.pmPlayForward);
+            m_GngServer = Server.Connect();
+
+            if (m_GngOffscreenViewer == null)
+            {
+                // initialize the viewer parameters
+                GngViewerConnectData connectData = new GngViewerConnectData
+                {
+                    GngServer = m_GngServer,
+                    MediaChID = MediaChID
+                };
+
+                CreateOffscreenViewer();
+                m_GngOffscreenViewer.ConnectDB(connectData, gngViewerPlayMode);
+            }
+            else
+                m_GngOffscreenViewer.SetPlayMode(gngViewerPlayMode);
+
         }
 
         private void CreateOffscreenViewer()
@@ -57,7 +73,7 @@ namespace Hit.GutService.Video
                 Params.FontSize = 20;
                 m_GngOffscreenViewer.SetTextParams(Params);
 
-                m_GngOffscreenViewer.SetOffscreenViewerSize(width, heigth, true); 
+                m_GngOffscreenViewer.SetOffscreenViewerSize(width, heigth, true);
                 m_GngOffscreenViewer.Refresh();
 
                 // set callbacks of the offscreen viewer objects
